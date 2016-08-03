@@ -5,11 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Windows.ApplicationModel;
 using Windows.Devices.Geolocation;
 using Windows.Devices.Sensors;
+using Windows.Foundation.Metadata;
 using Windows.Phone.Devices.Notification;
 using Windows.System.Threading;
 using Windows.UI.Popups;
+using Windows.UI.Xaml;
 using Windows.UI.Xaml.Navigation;
 using PokemonGo.RocketAPI;
 using PokemonGo_UWP.Entities;
@@ -41,11 +44,12 @@ namespace PokemonGo_UWP.ViewModels
         public override async Task OnNavigatedToAsync(object parameter, NavigationMode mode, IDictionary<string, object> suspensionState)
         {
             // Prevent from going back to other pages
-            NavigationService.ClearHistory();
+            NavigationService.ClearHistory();            
             if (parameter is bool)
             {
                 // First time navigating here, we need to initialize data updating but only if we have GPS access
-                await Dispatcher.DispatchAsync(async () => { 
+                await Dispatcher.DispatchAsync(async () =>
+                {
                     var accessStatus = await Geolocator.RequestAccessAsync();
                     switch (accessStatus)
                     {
@@ -63,8 +67,8 @@ namespace PokemonGo_UWP.ViewModels
             if (suspensionState.Any())
             {
                 // Recovering the state                
-                PlayerProfile = (PlayerData) suspensionState[nameof(PlayerProfile)];
-                PlayerStats = (PlayerStats) suspensionState[nameof(PlayerStats)];                
+                PlayerProfile = (PlayerData)suspensionState[nameof(PlayerProfile)];
+                PlayerStats = (PlayerStats)suspensionState[nameof(PlayerStats)];
             }
             else
             {
@@ -77,9 +81,16 @@ namespace PokemonGo_UWP.ViewModels
                     // TODO: report level increase
                 }
                 PlayerStats = tmpStats;
+                RaisePropertyChanged(nameof(ExperienceValue));
             }
+            // Setup vibration and sound
+            if (ApiInformation.IsTypePresent("Windows.Phone.Devices.Notification.VibrationDevice") && _vibrationDevice == null)
+            {
+                _vibrationDevice = VibrationDevice.GetDefault();                
+            }
+            GameClient.MapPokemonUpdated += GameClientOnMapPokemonUpdated;
             await Task.CompletedTask;
-        }
+        }        
 
         /// <summary>
         /// Save state before navigating
@@ -100,6 +111,7 @@ namespace PokemonGo_UWP.ViewModels
         public override async Task OnNavigatingFromAsync(NavigatingEventArgs args)
         {
             args.Cancel = false;
+            GameClient.MapPokemonUpdated -= GameClientOnMapPokemonUpdated;
             await Task.CompletedTask;
         }
 
@@ -110,7 +122,7 @@ namespace PokemonGo_UWP.ViewModels
         /// <summary>
         ///     We use it to notify that we found at least one catchable Pokemon in our area
         /// </summary>
-        private readonly VibrationDevice _vibrationDevice;
+        private VibrationDevice _vibrationDevice;
 
         /// <summary>
         ///     True if the phone can vibrate (e.g. the app is not in background)
@@ -137,6 +149,16 @@ namespace PokemonGo_UWP.ViewModels
 
         #region Bindable Game Vars   
 
+        public ElementTheme CurrentTheme
+        {
+            get
+            {
+                // Set theme
+                var currentTime = int.Parse(DateTime.Now.ToString("HH"));
+                return currentTime > 7 && currentTime < 19 ? ElementTheme.Light : ElementTheme.Dark;
+            }
+        }
+
         public string CurrentVersion => GameClient.CurrentVersion;
 
         /// <summary>
@@ -161,6 +183,9 @@ namespace PokemonGo_UWP.ViewModels
             get { return _playerStats; }
             set { Set(ref _playerStats, value); }
         }
+
+        public int ExperienceValue => _playerStats == null ? 0 : (int)(((double)_playerStats.Experience - _playerStats.PrevLevelXp) /
+            (_playerStats.NextLevelXp - _playerStats.PrevLevelXp) * 100);
 
         public InventoryDelta InventoryDelta
         {
@@ -202,9 +227,24 @@ namespace PokemonGo_UWP.ViewModels
             );
 
 
-        #endregion       
-
         #endregion
 
-    }
+        #region Notify
+
+        /// <summary>
+        /// Vibrates and/or plays a sound when new pokemons are in the area
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="eventArgs"></param>
+        private async void GameClientOnMapPokemonUpdated(object sender, EventArgs eventArgs)
+        {
+            _vibrationDevice?.Vibrate(TimeSpan.FromMilliseconds(500));
+            await AudioUtils.PlaySound(@"pokemon_found_ding.wav");
+        }
+
+    #endregion
+
+    #endregion
+
+}
 }

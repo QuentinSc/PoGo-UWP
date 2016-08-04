@@ -202,7 +202,7 @@
                                         <SymbolIcon Symbol="Delete" />
                                     </Button>-->
 
-                                    <TextBlock Text="Missing item description, leave a feedback if you can provide it."
+                                    <TextBlock Text="{Binding Converter={StaticResource ItemToItemDescriptionConverter}}"
                                                TextWrapping="WrapWholeWords"
                                                FontFamily="../Assets/Fonts/Lato-Light.ttf#Lato"
                                                Foreground="#FF45686A"
@@ -443,7 +443,7 @@
                                  Opacity="0.5" />
             </Border.Background>
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="{Binding CurrentPokemon.PokemonId}"
+                <TextBlock Text="{Binding CurrentPokemon.Name}"
                            Foreground="White" />
                 <TextBlock Text="/ CP"
                            Margin="6,0"

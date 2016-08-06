@@ -127,7 +127,7 @@
     <value>Загрузка аккаунта...</value>
   </data>
   <data name="googleButton.Text" xml:space="preserve">
-    <value>Гугл</value>
+    <value>Google</value>
   </data>
   <data name="InventoryFullText.Text" xml:space="preserve">
     <value>Инвентарь полон</value>
@@ -136,13 +136,13 @@
     <value>Вход через PTC Аккаунт</value>
   </data>
   <data name="loginInfoText.Text" xml:space="preserve">
-    <value>To login you need to insert your Username/Email and Password in this app. If you don't trust it, please, close it before going on. We are not responsible for anything.</value>
+    <value>Для входа в игру необходимо ввести ваш логин/EMail и пароль в этом приложении . Если вы не доверяете ему , пожалуйста , закройте его перед входом на сервер  . Мы не несем ответственности ни за что .</value>
   </data>
   <data name="logoutText.Text" xml:space="preserve">
     <value>Выйти</value>
   </data>
   <data name="nearbyText.Text" xml:space="preserve">
-    <value>nearby</value>
+    <value>Поблизости</value>
   </data>
   <data name="OutOfRangeText.Text" xml:space="preserve">
     <value>Слишком далеко</value>
@@ -165,4 +165,74 @@
   <data name="LoggingIn" xml:space="preserve">
     <value>Авторизация...</value>
   </data>
+  <data name="Fleed" xml:space="preserve">
+    <value> fleed</value>
+  </data>
+  <data name="GoogleError" xml:space="preserve">
+    <value>Google вернул ошибку: </value>
+  </data>
+  <data name="GoogleNotResponding" xml:space="preserve">
+    <value>Google не отвечает , пожалуйста, повторите попытку позже .</value>
+  </data>
+  <data name="LoginFailed" xml:space="preserve">
+    <value>Вход не выполнен. Пожалуйста попробуйте еще раз.</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>Нет</value>
+  </data>
+  <data name="NoGPSPermissions" xml:space="preserve">
+    <value>Нет доступа к GPS. Зайдите в настройки и включите его, а затем попробуйте еще раз.</value>
+  </data>
+  <data name="PokemonRanAway" xml:space="preserve">
+    <value>Покемон сбежал.</value>
+  </data>
+  <data name="PTCDown" xml:space="preserve">
+    <value>Проблемы с авторизацией через PTC, пожалуйста попробуйте позже.</value>
+  </data>
+  <data name="SomethingWentWrong" xml:space="preserve">
+    <value>Что-то пошло не так и теперь приложение может работать нестабильно . Вы хотите, выйти и попробовать еще раз?</value>
+  </data>
+  <data name="UpdatedVersion" xml:space="preserve">
+    <value>Доступна новая версия ({0}). Вы хотите обновиться?</value>
+  </data>
+  <data name="WrongUsername" xml:space="preserve">
+    <value>Направельный логин/пароль или сервер временно недоступен, пожалуйста, попробуйте еще раз.</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Да</value>
+  </data>
+    <data name="CPText.Text" xml:space="preserve">
+    <value>CP</value>
+  </data>
+  <data name="EggsText.Text" xml:space="preserve">
+    <value>Яйца</value>
+  </data>
+  <data name="MusicTitleText.Text" xml:space="preserve">
+    <value>Музыка</value>
+  </data>
+  <data name="PokemonText.Text" xml:space="preserve">
+    <value>Покемон</value>
+  </data>
+  <data name="SettingsHeaderText.Text" xml:space="preserve">
+    <value>Настройки</value>
+  </data>
+  <data name="SignOutButton.Text" xml:space="preserve">
+    <value>Выйти</value>
+  </data>
+  <data name="VibrationTitleText.Text" xml:space="preserve">
+    <value>Вибрации</value>
+  </data>
+    <data name="LevelupText.Text" xml:space="preserve">
+     <value>Уровень повышен!</value>
+   </data>
+        <data name="UpdateDownloading" xml:space="preserve">
+    <value>Скачивание обновления {0}</value>
+   </data>
+   <data name="UpdateInstalling" xml:space="preserve">
+     <value>Установка обновления. Приложение будет перезапущено.</value>
+   </data>
+   <data name="UpdateFailed" xml:space="preserve">
+     <value>Обновление неудачно. Ошибка: {0}
+ Открыть страницу для ручной установки?</value>
+   </data>
 </root>

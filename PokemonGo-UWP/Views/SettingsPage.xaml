@@ -22,95 +22,154 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="75" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="100" />
+            <RowDefinition Height="75" />
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0">
-            <TextBlock x:Uid="SettingsHeaderText" 
+            <TextBlock x:Uid="SettingsHeaderText"
                        Text="SETTINGS"
                        Style="{StaticResource TextPageTitle}" />
-            <Border Background="#ffffff" 
-                    Width="150" 
+            <Border Background="#ffffff"
+                    Width="150"
                     Height="1" />
         </StackPanel>
 
         <ScrollViewer Grid.Row="1">
-            <StackPanel>
+            <Grid Margin="15,0,15,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
 
-                <Grid Margin="15,0,30,10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0"
-                               x:Uid="MusicTitleText"
-                               Text="Music"
-                               Style="{StaticResource TextSettingsTitle}"
-                               VerticalAlignment="Center" />
+                <TextBlock Grid.Row="0"
+                           Grid.Column="0"
+                           x:Uid="SettingsUseNianticMapTextBlock"
+                           Text="Use Niantic Map"
+                           Style="{StaticResource TextSettingsTitle}"
+                           VerticalAlignment="Center"
+                           Margin="15,15,15,25" />
 
-                    <CheckBox Grid.Column="1"
-                              x:Name="MusicCheckbox"
-                              IsChecked="{Binding IsMusicEnabled, Mode=TwoWay}"
-                              Style="{StaticResource SettingsCheckbox}" />
-                </Grid>
+                <CheckBox Grid.Row="0"
+                          Grid.Column="1"
+                          IsChecked="{Binding IsNianticMapEnabled, Mode=TwoWay}"
+                          Style="{StaticResource SettingsCheckbox}"
+                          Margin="0,0,15,10" />
 
-                <Grid Margin="15,0,30,10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0"
-                               x:Uid="VibrationTitleText"
-                               Text="Vibration"
-                               Style="{StaticResource TextSettingsTitle}"
-                               VerticalAlignment="Center" />
+                <TextBlock Grid.Row="1"
+                           Grid.Column="0"
+                           x:Uid="SettingsMapAutoRotateTextBlock"
+                           Text="Auto-Rotate Map"
+                           Style="{StaticResource TextSettingsTitle}"
+                           VerticalAlignment="Center"
+                           Margin="15,15,15,25" />
 
-                    <CheckBox Grid.Column="1"
-                              x:Name="VibrationCheckbox"
-                              IsChecked="{Binding IsVibrationEnabled, Mode=TwoWay}"
-                              Style="{StaticResource SettingsCheckbox}" />
-                </Grid>
+                <CheckBox Grid.Row="1"
+                          Grid.Column="1"
+                          IsChecked="{Binding IsAutoRotateMapEnabled, Mode=TwoWay}"
+                          Style="{StaticResource SettingsCheckbox}"
+                          Margin="0,0,15,10" />
 
-                <Grid Margin="15,0,30,10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0"
-                               x:Uid="MapAutoRotateTitleText"
-                               Text="Autorotate map"
-                               Style="{StaticResource TextSettingsTitle}"
-                               VerticalAlignment="Center" />
+                <TextBlock Grid.Row="2"
+                           Grid.Column="0"
+                           x:Uid="SettingsRememberMapZoomTextBlock"
+                           Text="Remember Map Zoom"
+                           Style="{StaticResource TextSettingsTitle}"
+                           VerticalAlignment="Center"
+                           Margin="15,15,15,25" />
 
-                    <CheckBox Grid.Column="1"
-                              x:Name="MapAutoRotateCheckbox"
-                              IsChecked="{Binding IsAutoRotateMapEnabled, Mode=TwoWay}"
-                              Style="{StaticResource SettingsCheckbox}" />
-                </Grid>
+                <CheckBox Grid.Row="2"
+                          Grid.Column="1"
+                          IsChecked="{Binding IsRememberMapZoomEnabled, Mode=TwoWay}"
+                          Style="{StaticResource SettingsCheckbox}"
+                          Margin="0,0,15,10"/>
 
-                <Border Background="#33ffffff" 
-                        Height="0.3" 
-                        Margin="15,15,15,0" />
+                <Border Grid.Row="3"
+                        Grid.ColumnSpan="2"
+                        Background="#33ffffff"
+                        Height="1"
+                        Margin="0,8,0,15" />
 
-                <Grid Margin="15,0,15,10">
-                    <Button Command="{Binding DoPtcLogoutCommand}"
-                            Style="{StaticResource ButtonNoStyle}">
-                        <TextBlock
-                            Text="Sign Out"
-                            x:Uid="SignOutButton"
-                            Style="{StaticResource TextSettingsTitle}"
-                            VerticalAlignment="Center"
-                            HorizontalAlignment="Right"/>
-                    </Button>
-                </Grid>
+                <TextBlock Grid.Row="4"
+                           Grid.Column="0"
+                           x:Uid="SettingsMusicTextBlock"
+                           Text="Music"
+                           Style="{StaticResource TextSettingsTitle}"
+                           VerticalAlignment="Center"
+                           Margin="15,15,15,25" />
 
-            </StackPanel>
+                <CheckBox Grid.Row="4"
+                          Grid.Column="1"
+                          IsChecked="{Binding IsMusicEnabled, Mode=TwoWay}"
+                          Style="{StaticResource SettingsCheckbox}"
+                          Margin="0,0,15,10" />
+
+                <TextBlock Grid.Row="5"
+                           Grid.Column="0"
+                           x:Uid="SettingsVibrationTextBlock"
+                           Text="Vibration"
+                           Style="{StaticResource TextSettingsTitle}"
+                           VerticalAlignment="Center"
+                           Margin="15,15,15,25" />
+
+                <CheckBox Grid.Row="5"
+                          Grid.Column="1"
+                          IsChecked="{Binding IsVibrationEnabled, Mode=TwoWay}"
+                          Style="{StaticResource SettingsCheckbox}"
+                          Margin="0,0,15,10" />
+
+                <TextBlock Grid.Row="6"
+                           Grid.Column="0"
+                           x:Uid="SettingsLiveTileTextBlock"
+                           Text="Enable Live Tile"
+                           Style="{StaticResource TextSettingsTitle}"
+                           VerticalAlignment="Center"
+                           Margin="15,15,15,25" />
+
+                <CheckBox Grid.Row="6"
+                          Grid.Column="1"
+                          IsChecked="{Binding IsLiveTileEnabled, Mode=TwoWay}"
+                          Style="{StaticResource SettingsCheckbox}"
+                          Margin="0,0,15,10" />
+
+                <Border Grid.Row="7"
+                        Grid.ColumnSpan="2"
+                        Background="#33ffffff"
+                        Height="1"
+                        Margin="0,8,0,15" />
+
+                <Button Grid.Row="8"
+                        Grid.ColumnSpan="2"
+                        Command="{Binding DoPtcLogoutCommand}"
+                        Style="{StaticResource ButtonNoStyle}">
+                    <TextBlock x:Uid="SettingsSignOutTextBlock"
+                                Text="Sign Out"
+                                Style="{StaticResource TextSettingsTitle}"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Right" />
+                </Button>
+
+
+            </Grid>
+
         </ScrollViewer>
 
         <Button Grid.Row="2"
                 Command="{Binding CloseCommand}"
-                Style="{StaticResource ButtonCircle}">
-            <TextBlock Text="" FontFamily="SEGOE MDL2 Assets" />
+                Style="{StaticResource ButtonCircle}"
+                Margin="0">
+            <Image Source="../Assets/Buttons/btn_close.png" />
         </Button>
 
     </Grid>

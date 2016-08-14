@@ -1,26 +1,27 @@
 ﻿using System;
-using System.Text;
+using System.Linq;
 using Google.Protobuf;
-using POGOProtos.Networking.Signature;
 using PokemonGo.RocketAPI.Enums;
+using PokemonGo.RocketAPI.Extensions;
 using POGOProtos.Networking.Envelopes;
 using POGOProtos.Networking.Requests;
-using PokemonGo.RocketAPI.Extensions;
 using static POGOProtos.Networking.Envelopes.RequestEnvelope.Types;
 
 namespace PokemonGo.RocketAPI.Helpers
 {
     public class RequestBuilder
     {
-        private readonly string _authToken;
-        private readonly AuthType _authType;
-        private readonly double _latitude;
-        private readonly double _longitude;
         private readonly double _altitude;
         private readonly AuthTicket _authTicket;
-        private readonly DateTime _startTime = DateTime.UtcNow;
+        private readonly string _authToken;
+        private readonly AuthType _authType;
+        private readonly IDeviceInfo _deviceInfo;
+        private readonly double _latitude;
+        private readonly double _longitude;
+        private readonly Random _random = new Random();
 
         public RequestBuilder(string authToken, AuthType authType, double latitude, double longitude, double altitude,
+            IDeviceInfo deviceInfo,
             AuthTicket authTicket = null)
         {
             _authToken = authToken;
@@ -29,6 +30,7 @@ namespace PokemonGo.RocketAPI.Helpers
             _longitude = longitude;
             _altitude = altitude;
             _authTicket = authTicket;
+            _deviceInfo = deviceInfo;
         }
 
         public RequestEnvelope SetRequestEnvelopeUnknown6(RequestEnvelope requestEnvelope)
@@ -37,36 +39,100 @@ namespace PokemonGo.RocketAPI.Helpers
             var rnd = new Random();
             rnd.NextBytes(rnd32);
 
-            var ticketBytes = requestEnvelope.AuthTicket.ToByteArray();
+            byte[] authSeed = requestEnvelope.AuthTicket != null ?
+                requestEnvelope.AuthTicket.ToByteArray() :
+                requestEnvelope.AuthInfo.ToByteArray();
 
-            var sig = new Signature()
+
+            var normAccel = new Vector(_deviceInfo.AccelRawX, _deviceInfo.AccelRawY, _deviceInfo.AccelRawZ);
+            normAccel.NormalizeVector(9.81);
+            normAccel.Round(2);
+
+            ulong timeFromStart = (ulong)_deviceInfo.TimeSnapshot.TotalMilliseconds;
+
+            var sig = new Signature
             {
                 LocationHash1 =
-                    Utils.GenerateLocation1(ticketBytes, requestEnvelope.Latitude, requestEnvelope.Longitude,
+                    Utils.GenerateLocation1(authSeed, requestEnvelope.Latitude, requestEnvelope.Longitude,
                         requestEnvelope.Altitude),
                 LocationHash2 =
                     Utils.GenerateLocation2(requestEnvelope.Latitude, requestEnvelope.Longitude,
                         requestEnvelope.Altitude),
-                Unk22 = ByteString.CopyFrom(rnd32),
+                SessionHash = ByteString.CopyFrom(rnd32),
+                Unknown25 = 0x898654dd2753a481UL,
                 Timestamp = (ulong) DateTime.UtcNow.ToUnixTime(),
-                TimestampSinceStart = (ulong)(DateTime.UtcNow.ToUnixTime() - _startTime.ToUnixTime())
+                TimestampSinceStart = timeFromStart,
+                SensorInfo = new Signature.Types.SensorInfo
+                {
+                    AccelNormalizedX = normAccel.X,
+                    AccelNormalizedY = normAccel.Y,
+                    AccelNormalizedZ = normAccel.Z,
+                    AccelRawX = -_deviceInfo.AccelRawX,
+                    AccelRawY = -_deviceInfo.AccelRawY,
+                    AccelRawZ = -_deviceInfo.AccelRawZ,
+                    MagnetometerX = _deviceInfo.MagnetometerX,
+                    MagnetometerY = _deviceInfo.MagnetometerY,
+                    MagnetometerZ = _deviceInfo.MagnetometerZ,
+                    GyroscopeRawX = _deviceInfo.GyroscopeRawX,
+                    GyroscopeRawY = _deviceInfo.GyroscopeRawY,
+                    GyroscopeRawZ = _deviceInfo.GyroscopeRawZ,
+                    AngleNormalizedX = _deviceInfo.AngleNormalizedX,
+                    AngleNormalizedY = _deviceInfo.AngleNormalizedY,
+                    AngleNormalizedZ = _deviceInfo.AngleNormalizedZ,
+                    AccelerometerAxes = _deviceInfo.AccelerometerAxes,
+                    TimestampSnapshot = timeFromStart - (ulong) _random.Next(150, 260)
+                },
+                DeviceInfo = new Signature.Types.DeviceInfo
+                {
+                    DeviceId = _deviceInfo.DeviceID,
+                    FirmwareBrand = _deviceInfo.FirmwareBrand,
+                    FirmwareType = _deviceInfo.FirmwareType
+                }
+
+                /*ActivityStatus = new Signature.Types.ActivityStatus()
+                {
+                    StartTimeMs = timeFromStart - (ulong)_random.Next(150, 350),
+                    Walking = false,
+                    Automotive = false,
+                    Cycling = false,
+                    Running = false,
+                    Stationary = true,
+                    Tilting = false,
+                    UnknownStatus = false,
+                    Status = ByteString.Empty //Have no idea what is there
+                }*/
             };
+
+            _deviceInfo.LocationFixes.ToList().ForEach(loc => sig.LocationFix.Add(new Signature.Types.LocationFix
+            {
+                Floor = loc.Floor,
+                Longitude = loc.Longitude,
+                Latitude = loc.Latitude,
+                Altitude = loc.Altitude,
+                LocationType = loc.LocationType,
+                Provider = loc.Provider,
+                ProviderStatus = loc.ProviderStatus,
+                HorizontalAccuracy = loc.HorizontalAccuracy,
+                VerticalAccuracy = loc.VerticalAccuracy,
+                TimestampSnapshot = loc.Timestamp
+
+            }));
 
             foreach (var request in requestEnvelope.Requests)
             {
                 sig.RequestHash.Add(
-                    Utils.GenerateRequestHash(ticketBytes, request.ToByteArray())
-                );
+                    Utils.GenerateRequestHash(authSeed, request.ToByteArray())
+                    );
             }
 
-            requestEnvelope.Unknown6.Add(new Unknown6()
+            requestEnvelope.Unknown6 = new Unknown6
             {
                 RequestType = 6,
-                Unknown2 = new Unknown6.Types.Unknown2()
+                Unknown2 = new Unknown6.Types.Unknown2
                 {
-                    Unknown1 = ByteString.CopyFrom(Crypt.Encrypt(sig.ToByteArray()))
+                     EncryptedSignature = ByteString.CopyFrom(Crypt.Encrypt(sig.ToByteArray()))
                 }
-            });
+            };
 
             return requestEnvelope;
         }
@@ -78,7 +144,7 @@ namespace PokemonGo.RocketAPI.Helpers
                 StatusCode = 2, //1
 
                 RequestId = 1469378659230941192, //3
-                Requests = { customRequests }, //4
+                Requests = {customRequests}, //4
 
                 //Unknown6 = , //6
                 Latitude = _latitude, //7
@@ -91,12 +157,12 @@ namespace PokemonGo.RocketAPI.Helpers
 
         public RequestEnvelope GetInitialRequestEnvelope(params Request[] customRequests)
         {
-            return new RequestEnvelope
+            return SetRequestEnvelopeUnknown6(new RequestEnvelope
             {
                 StatusCode = 2, //1
 
                 RequestId = 1469378659230941192, //3
-                Requests = { customRequests }, //4
+                Requests = {customRequests}, //4
 
                 //Unknown6 = , //6
                 Latitude = _latitude, //7
@@ -112,17 +178,16 @@ namespace PokemonGo.RocketAPI.Helpers
                     }
                 }, //10
                 Unknown12 = 989 //12
-            };
+            });
         }
 
         public RequestEnvelope GetRequestEnvelope(RequestType type, IMessage message)
         {
-            return GetRequestEnvelope(new Request()
+            return GetRequestEnvelope(new Request
             {
                 RequestType = type,
                 RequestMessage = message.ToByteString()
             });
-
         }
     }
 }

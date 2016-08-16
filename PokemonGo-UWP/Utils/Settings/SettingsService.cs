@@ -43,12 +43,12 @@ namespace PokemonGo_UWP.Utils
             set { _helper.Write(nameof(LastLoginService), value); }
         }
 
-        public string AuthToken
+        public string AccessTokenString
         {
             get
             {
                 var credentials = _passwordVault.RetrieveAll();
-                var token = credentials.FirstOrDefault(credential => credential.Resource.Equals(nameof(AuthToken)));
+                var token = credentials.FirstOrDefault(credential => credential.Resource.Equals(nameof(AccessTokenString)));
                 if (token == null) return string.Empty;
                 token.RetrievePassword();
                 return token.Password;
@@ -57,14 +57,14 @@ namespace PokemonGo_UWP.Utils
             {
                 var credentials = _passwordVault.RetrieveAll();
                 var currentToken =
-                    credentials.FirstOrDefault(credential => credential.Resource.Equals(nameof(AuthToken)));
+                    credentials.FirstOrDefault(credential => credential.Resource.Equals(nameof(AccessTokenString)));
                 if (currentToken != null) _passwordVault.Remove(currentToken);
                 if (value == null) return;
                 _passwordVault.Add(new PasswordCredential
                 {
-                    UserName = nameof(AuthToken),
+                    UserName = nameof(AccessTokenString),
                     Password = value,
-                    Resource = nameof(AuthToken)
+                    Resource = nameof(AccessTokenString)
                 });
             }
         }
@@ -97,12 +97,6 @@ namespace PokemonGo_UWP.Utils
             set { _helper.Write(nameof(IsAutoRotateMapEnabled), value); }
         }
 
-        public bool IsLiveTileEnabled
-        {
-            get { return _helper.Read(nameof(IsLiveTileEnabled), false); }
-            set { _helper.Write(nameof(IsLiveTileEnabled), value); }
-        }
-
         public bool IsMusicEnabled
         {
             get { return _helper.Read(nameof(IsMusicEnabled), false); }
@@ -126,7 +120,13 @@ namespace PokemonGo_UWP.Utils
             get { return _helper.Read(nameof(IsVibrationEnabled), false); }
             set { _helper.Write(nameof(IsVibrationEnabled), value); }
         }
-        
+
+        public LiveTileModes LiveTileMode
+        {
+            get { return _helper.Read(nameof(LiveTileMode), LiveTileModes.Off); }
+            set { _helper.Write(nameof(LiveTileMode), value); }
+        }
+
         public PokemonSortingModes PokemonSortingMode
         {
             get { return _helper.Read(nameof(PokemonSortingMode), PokemonSortingModes.Combat); }

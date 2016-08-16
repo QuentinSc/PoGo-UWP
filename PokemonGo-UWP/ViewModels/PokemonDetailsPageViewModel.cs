@@ -1,34 +1,56 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Windows.UI.Popups;
-using Windows.UI.Xaml;
-using Windows.UI.Xaml.Navigation;
-using Google.Common.Geometry;
-using PokemonGo_UWP.Entities;
-using PokemonGo_UWP.Utils;
-using PokemonGo_UWP.Views;
-using POGOProtos.Data;
+﻿using POGOProtos.Data;
 using POGOProtos.Enums;
 using POGOProtos.Inventory;
 using POGOProtos.Networking.Responses;
 using POGOProtos.Settings.Master;
+using PokemonGo_UWP.Entities;
+using PokemonGo_UWP.Utils;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Template10.Mvvm;
 using Template10.Services.NavigationService;
-using Universal_Authenticator_v2.Views;
+using Windows.UI.Popups;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Navigation;
+using Newtonsoft.Json;
 
 namespace PokemonGo_UWP.ViewModels
 {
     public class PokemonDetailsPageViewModel : ViewModelBase
     {
 
+        public PokemonDetailsPageViewModel()
+        {
+            if (Windows.ApplicationModel.DesignMode.DesignModeEnabled)
+            {
+                var pokeData = new PokemonData
+                {
+                    PokemonId = PokemonId.Abra,
+                    Cp = 10,
+                    Stamina = 800,
+                    StaminaMax = 1000,
+                    WeightKg = 12,
+                    BattlesAttacked = 5
+                    
+                };
+                CurrentPokemon = new PokemonDataWrapper(pokeData);
+                StardustAmount = 18000;
+                StardustToPowerUp = 1800;
+                CandiesToPowerUp = 100;
+                CurrentCandy = new Candy
+                {
+                    FamilyId = PokemonFamilyId.FamilyAbra,
+                    Candy_ = 10
+                };
+            }
+        }
+
         #region Lifecycle Handlers
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="parameter">MapPokemonWrapper containing the Pokemon that we're trying to capture</param>
         /// <param name="mode"></param>
@@ -40,13 +62,13 @@ namespace PokemonGo_UWP.ViewModels
             if (suspensionState.Any())
             {
                 // Recovering the state
-                CurrentPokemon = (PokemonDataWrapper) suspensionState[nameof(CurrentPokemon)];
-                PlayerProfile = (PlayerData) suspensionState[nameof(PlayerProfile)];
+                CurrentPokemon = JsonConvert.DeserializeObject<PokemonDataWrapper>((string)suspensionState[nameof(CurrentPokemon)]);
+                PlayerProfile = JsonConvert.DeserializeObject<PlayerData>((string)suspensionState[nameof(PlayerProfile)]);
             }
             else
             {
-                // Navigating from inventory page so we need to load the pokemon               
-                CurrentPokemon = (PokemonDataWrapper) NavigationHelper.NavigationState[nameof(CurrentPokemon)];                
+                // Navigating from inventory page so we need to load the pokemon
+                CurrentPokemon = (PokemonDataWrapper)NavigationHelper.NavigationState[nameof(CurrentPokemon)];
                 UpdateCurrentData();
             }
             await Task.CompletedTask;
@@ -62,8 +84,8 @@ namespace PokemonGo_UWP.ViewModels
         {
             if (suspending)
             {
-                suspensionState[nameof(CurrentPokemon)] = CurrentPokemon;
-                suspensionState[nameof(PlayerProfile)] = PlayerProfile;
+                suspensionState[nameof(CurrentPokemon)] = JsonConvert.SerializeObject(CurrentPokemon);
+                suspensionState[nameof(PlayerProfile)] = JsonConvert.SerializeObject(PlayerProfile);
             }
             await Task.CompletedTask;
         }
@@ -216,7 +238,7 @@ namespace PokemonGo_UWP.ViewModels
             get { return _currentCandy; }
             set
             {
-                Set(ref _currentCandy, value); 
+                Set(ref _currentCandy, value);
                 EvolvePokemonCommand.RaiseCanExecuteChanged();
             }
         }
@@ -254,9 +276,11 @@ namespace PokemonGo_UWP.ViewModels
                     Convert.ToInt32(Math.Round(PokemonInfo.GetLevel(CurrentPokemon.WrappedData)) - 1)];
             CandiesToPowerUp = Convert.ToInt32(upgradeCosts[0]);
             StardustToPowerUp = Convert.ToInt32(upgradeCosts[1]);
-            PokemonExtraData = GameClient.GetExtraDataForPokemon(CurrentPokemon.PokemonId);            
+            PokemonExtraData = GameClient.GetExtraDataForPokemon(CurrentPokemon.PokemonId);
             CurrentCandy = GameClient.CandyInventory.FirstOrDefault(item => item.FamilyId == PokemonExtraData.FamilyId);
             RaisePropertyChanged(() => PokemonExtraData);
+            PowerUpPokemonCommand.RaiseCanExecuteChanged();
+            EvolvePokemonCommand.RaiseCanExecuteChanged();
         }
 
         private DelegateCommand _returnToPokemonInventoryScreen;
@@ -282,7 +306,7 @@ namespace PokemonGo_UWP.ViewModels
           {
               // Ask for confirmation before moving the Pokemon
               // TODO: better style maybe?
-              var dialog = 
+              var dialog =
                   new MessageDialog(string.Format(Resources.CodeResources.GetString("TransferPokemonWarningText"),
                       Resources.Pokemon.GetString(CurrentPokemon.PokemonId.ToString())));
               dialog.Commands.Add(new UICommand(Resources.CodeResources.GetString("YesText")) { Id = 0 });
@@ -304,7 +328,7 @@ namespace PokemonGo_UWP.ViewModels
                                   Resources.Pokemon.GetString(CurrentCandy.FamilyId.ToString().Replace("Family", "")))).ShowAsyncQueue();
                       await GameClient.UpdateInventory();
                       await GameClient.UpdatePlayerStats();
-                      NavigationService.Navigate(typeof(PokemonInventoryPage));
+                      NavigationService.GoBack();
                       break;
                   // TODO: what to do on error?
                   case ReleasePokemonResponse.Types.Result.PokemonDeployed:
@@ -315,7 +339,7 @@ namespace PokemonGo_UWP.ViewModels
                       break;
                   default:
                       throw new ArgumentOutOfRangeException();
-              }                  
+              }
           }, () => true));
 
         #endregion
@@ -351,7 +375,7 @@ namespace PokemonGo_UWP.ViewModels
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-        }, () => StardustAmount >= StardustToPowerUp));
+        }, () => CurrentCandy != null && StardustAmount >= StardustToPowerUp && CurrentCandy.Candy_ >= CandiesToPowerUp));
 
         #endregion
 

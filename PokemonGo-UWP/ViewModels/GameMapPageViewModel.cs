@@ -7,6 +7,7 @@ using Windows.Devices.Geolocation;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Navigation;
+using Newtonsoft.Json;
 using PokemonGo.RocketAPI;
 using PokemonGo_UWP.Entities;
 using PokemonGo_UWP.Utils;
@@ -42,8 +43,8 @@ namespace PokemonGo_UWP.ViewModels
             if (suspensionState.Any())
             {
                 // Recovering the state
-                PlayerProfile = (PlayerData)suspensionState[nameof(PlayerProfile)];
-                PlayerStats = (PlayerStats)suspensionState[nameof(PlayerStats)];
+                PlayerProfile = JsonConvert.DeserializeObject<PlayerData>((string)suspensionState[nameof(PlayerProfile)]);
+                PlayerStats = JsonConvert.DeserializeObject<PlayerStats>((string)suspensionState[nameof(PlayerStats)]);
                 // Restarting update service
                 await StartGpsDataService();
                 return;
@@ -56,19 +57,19 @@ namespace PokemonGo_UWP.ViewModels
                     // App just started, so we get GPS access and eventually initialize the client
                     await StartGpsDataService();
                     await UpdatePlayerData(true);
-                    await GameClient.ToggleUpdateTimer();
+                    GameClient.ToggleUpdateTimer();
                     break;
                 case GameMapNavigationModes.SettingsUpdate:
                     // We navigated back from Settings page after changing the Map provider, but this is managed in the page itself
                     break;
                 case GameMapNavigationModes.PokestopUpdate:
                     // We came here after the catching page so we need to restart map update timer and update player data. We also check for level up.
-                    await GameClient.ToggleUpdateTimer();
+                    GameClient.ToggleUpdateTimer();
                     await UpdatePlayerData(true);
                     break;
                 case GameMapNavigationModes.PokemonUpdate:
                     // As above
-                    await GameClient.ToggleUpdateTimer();
+                    GameClient.ToggleUpdateTimer();
                     await UpdatePlayerData(true);
                     break;
                 default:
@@ -86,8 +87,8 @@ namespace PokemonGo_UWP.ViewModels
         {
             if (suspending)
             {
-                suspensionState[nameof(PlayerProfile)] = PlayerProfile;
-                suspensionState[nameof(PlayerStats)] = PlayerStats;
+                suspensionState[nameof(PlayerProfile)] = JsonConvert.SerializeObject(PlayerProfile);
+                suspensionState[nameof(PlayerStats)] = JsonConvert.SerializeObject(PlayerStats);
             }
             await Task.CompletedTask;
         }
@@ -231,8 +232,6 @@ namespace PokemonGo_UWP.ViewModels
                     case LevelUpRewardsResponse.Types.Result.Success:
                         LevelUpRewardsAwarded?.Invoke(this, null);
                         break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
                 }
             }
         }
@@ -260,6 +259,18 @@ namespace PokemonGo_UWP.ViewModels
                 _gotoPokemonInventoryPage ??
                 (_gotoPokemonInventoryPage =
                     new DelegateCommand(() => { NavigationService.Navigate(typeof(PokemonInventoryPage), true); }));
+
+        #endregion
+
+        #region Items
+
+        private DelegateCommand _gotoItemsInventoryPage;
+
+        public DelegateCommand GotoItemsInventoryPageCommand
+            =>
+                _gotoItemsInventoryPage ??
+                (_gotoItemsInventoryPage =
+                    new DelegateCommand(() => { NavigationService.Navigate(typeof(ItemsInventoryPage), true); }));
 
         #endregion
 

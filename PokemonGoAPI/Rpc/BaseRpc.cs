@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
+using Windows.Devices.Geolocation;
 using Google.Protobuf;
 using PokemonGo.RocketAPI.Extensions;
 using PokemonGo.RocketAPI.Helpers;
@@ -12,6 +14,12 @@ namespace PokemonGo.RocketAPI.Rpc
     {
         protected Client Client;
 
+        #region Heartbeat Extensions
+
+        public static DateTime LastRpcRequest { get; private set; }
+
+        #endregion
+
         protected BaseRpc(Client client)
         {
             Client = client;
@@ -22,7 +30,7 @@ namespace PokemonGo.RocketAPI.Rpc
                 new RequestBuilder(Client.AuthToken, Client.AuthType, Client.CurrentLatitude, Client.CurrentLongitude,
                     Client.CurrentAltitude, Client.DeviceInfo, Client.AuthTicket);
 
-        protected string ApiUrl => $"https://{Client.ApiUrl}/rpc";
+        private string ApiUrl => $"https://{Client.ApiUrl}/rpc";
 
         protected async Task<TResponsePayload> PostProtoPayload<TRequest, TResponsePayload>(RequestType type,
             IMessage message) where TRequest : IMessage<TRequest>
@@ -96,6 +104,7 @@ namespace PokemonGo.RocketAPI.Rpc
         protected async Task<IMessage[]> PostProtoPayload<TRequest>(RequestEnvelope requestEnvelope,
             params Type[] responseTypes) where TRequest : IMessage<TRequest>
         {
+            LastRpcRequest = DateTime.Now;
             return
                 await
                     Client.PokemonHttpClient.PostProtoPayload<TRequest>(ApiUrl, requestEnvelope, Client.ApiFailure,
@@ -110,7 +119,8 @@ namespace PokemonGo.RocketAPI.Rpc
 
         protected async Task<ResponseEnvelope> PostProto<TRequest>(string url, RequestEnvelope requestEnvelope)
             where TRequest : IMessage<TRequest>
-        {
+        {            
+            LastRpcRequest = DateTime.Now;            
             return await Client.PokemonHttpClient.PostProto<TRequest>(url, requestEnvelope);
         }
     }

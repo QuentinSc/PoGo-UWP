@@ -1,4 +1,5 @@
 using Microsoft.HockeyApp;
+using NotificationsExtensions.Tiles;
 using POGOProtos.Data;
 using PokemonGo.RocketAPI;
 using PokemonGo.RocketAPI.Logging;
@@ -8,6 +9,7 @@ using PokemonGo_UWP.Views;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Linq;
 using System.Threading.Tasks;
 using Template10.Common;
 using Windows.ApplicationModel;
@@ -85,14 +87,16 @@ namespace PokemonGo_UWP
             e.Handled = true;
             await ExceptionHandler.HandleException(new Exception(e.Message));
             // We should be logging these exceptions too so they can be tracked down.
-            HockeyClient.Current.TrackException(e.Exception);
+            if (!string.IsNullOrEmpty(ApplicationKeys.HockeyAppToken))
+                HockeyClient.Current.TrackException(e.Exception);
         }
 
         private static void TaskScheduler_UnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
         {
             e.SetObserved();
             Logger.Write(e.Exception.Message);
-            HockeyClient.Current.TrackException(e.Exception);
+            if (!string.IsNullOrEmpty(ApplicationKeys.HockeyAppToken))
+                HockeyClient.Current.TrackException(e.Exception);
         }
 
         /// <summary>
@@ -102,24 +106,16 @@ namespace PokemonGo_UWP
         /// <param name="e"></param>
         private void PokemonsInventory_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            if (!SettingsService.Instance.IsLiveTileEnabled) return;
+            if (SettingsService.Instance.LiveTileMode == LiveTileModes.Off) return;
             // Using a Switch here because we might handle other changed events in other ways.
             switch (e.Action)
             {
                 case NotifyCollectionChangedAction.Add:
                 case NotifyCollectionChangedAction.Remove:
                 case NotifyCollectionChangedAction.Replace:
-                    var images = new List<string>();
-
-                    foreach (PokemonData pokemonData in e.NewItems)
-                    {
-                        var pokemon = new PokemonDataWrapper(pokemonData);
-                        images.Add($"Assets/Pokemons/{(int)pokemon.PokemonId}.png");
-                    }
-
-                    var tile = LiveTileHelper.GetPeopleTile(images);
-                    LiveTileUpdater.Update(new TileNotification(tile.GetXml()));
+                    UpdateLiveTile(e.NewItems.Cast<PokemonData>().OrderByDescending(c => c.Cp).ToList());
                     break;
+
             }
         }
 
@@ -153,6 +149,10 @@ namespace PokemonGo_UWP
             GameClient.PokemonsInventory.CollectionChanged -= PokemonsInventory_CollectionChanged;
             GameClient.CatchablePokemons.CollectionChanged -= CatchablePokemons_CollectionChanged;
             _displayRequest.RequestRelease();
+            if (SettingsService.Instance.LiveTileMode == LiveTileModes.Peek)
+            {
+                LiveTileUpdater.EnableNotificationQueue(false);
+            }
             return base.OnSuspendingAsync(s, e, prelaunchActivated);
         }
 
@@ -187,8 +187,13 @@ namespace PokemonGo_UWP
                 _vibrationDevice = VibrationDevice.GetDefault();
             }
 
+            if (SettingsService.Instance.LiveTileMode == LiveTileModes.Peek)
+            {
+                LiveTileUpdater.EnableNotificationQueue(true);
+            }
+
             // Respond to changes in inventory and Pokemon in the immediate viscinity.
-            GameClient.PokemonsInventory.CollectionChanged += PokemonsInventory_CollectionChanged;
+                GameClient.PokemonsInventory.CollectionChanged += PokemonsInventory_CollectionChanged;
             GameClient.CatchablePokemons.CollectionChanged += CatchablePokemons_CollectionChanged;
 
             await Task.CompletedTask;
@@ -204,22 +209,33 @@ namespace PokemonGo_UWP
         {
             AsyncSynchronizationContext.Register();
             // TODO: this is really ugly!
-            if (!string.IsNullOrEmpty(SettingsService.Instance.AuthToken))
+            //if (!string.IsNullOrEmpty(SettingsService.Instance.AuthToken))
+            //{
+            //    try
+            //    {
+            //        await GameClient.InitializeClient();
+            //        // We have a stored token, let's go to game page
+            //        NavigationService.Navigate(typeof(GameMapPage), GameMapNavigationModes.AppStart);
+            //    }
+            //    catch (Exception e)
+            //    {
+            //        await ExceptionHandler.HandleException(e);
+            //    }
+            //}
+            //else
+            //{
+            //    await NavigationService.NavigateAsync(typeof(MainPage));
+            //}
+
+            var currentAccessToken = GameClient.LoadAccessToken();
+            if (currentAccessToken == null)
             {
-                try
-                {
-                    await GameClient.InitializeClient();
-                    // We have a stored token, let's go to game page
-                    NavigationService.Navigate(typeof(GameMapPage), GameMapNavigationModes.AppStart);
-                }
-                catch (Exception e)
-                {
-                    await ExceptionHandler.HandleException(e);
-                }
+                await NavigationService.NavigateAsync(typeof(MainPage));
             }
             else
             {
-                await NavigationService.NavigateAsync(typeof(MainPage));
+                await GameClient.InitializeClient();
+                NavigationService.Navigate(typeof(GameMapPage), GameMapNavigationModes.AppStart);
             }
 
             // Check for updates (ignore resume)
@@ -248,6 +264,85 @@ namespace PokemonGo_UWP
                 }
             }
             await Task.CompletedTask;
+        }
+
+        #endregion
+
+        #region Helpers
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pokemonList"></param>
+        /// <remarks>
+        /// advancedrei: The LiveTileUpdater is on teh App class, so this has to stay here for now. Might refactor later.
+        /// </remarks>
+        internal static void UpdateLiveTile(IList<PokemonData> pokemonList)
+        {
+            // Let's run this on a separate thread.
+            Task.Run(() => {
+                try
+                {
+                    TileContent tile = null;
+                    var images = new List<string>();
+                    var mode = SettingsService.Instance.LiveTileMode;
+
+                    // Generate the images list for multi-image modes.
+                    if (mode == LiveTileModes.People && mode == LiveTileModes.Photo)
+                    {
+                        images.AddRange(pokemonList.Select(c => new PokemonDataWrapper(c).ImageFileName));
+                    }
+
+                    if (mode != LiveTileModes.Peek)
+                    {
+                        App.LiveTileUpdater.EnableNotificationQueue(true);
+                    }
+                    else
+                    {
+                        App.LiveTileUpdater.EnableNotificationQueue(false);
+                        LiveTileUpdater.Clear();
+                    }
+
+                    switch (mode)
+                    {
+                        case LiveTileModes.Off:
+                            break;
+                        case LiveTileModes.Peek:
+                            foreach (PokemonData pokemonData in pokemonList)
+                            {
+                                if (LiveTileUpdater.GetScheduledTileNotifications().Count >= 300) return;
+                                var peekTile = LiveTileHelper.GetPeekTile(new PokemonDataWrapper(pokemonData));
+                                var scheduled = new ScheduledTileNotification(peekTile.GetXml(),
+                                    DateTimeOffset.Now.AddSeconds((pokemonList.IndexOf(pokemonData) * 30) + 1));
+                                LiveTileUpdater.AddToSchedule(scheduled);
+                            }
+                            break;
+                        case LiveTileModes.People:
+                            tile = LiveTileHelper.GetPeopleTile(images);
+                            LiveTileUpdater.Update(new TileNotification(tile.GetXml()));
+                            break;
+                        case LiveTileModes.Photo:
+                            tile = LiveTileHelper.GetPhotosTile(images);
+                            LiveTileUpdater.Update(new TileNotification(tile.GetXml()));
+                            break;
+                        case LiveTileModes.Transparent:
+                            tile = LiveTileHelper.GetImageTile("LiveTiles/Transparent/Square44x44Logo.scale-400.png");
+                            LiveTileUpdater.Update(new TileNotification(tile.GetXml()));
+                            break;
+                    }
+                    if (tile != null)
+                    {
+                        //Logger.Write(tile.GetXml().GetXml());
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    Logger.Write(ex.Message);
+                    if (!string.IsNullOrEmpty(ApplicationKeys.HockeyAppToken))
+                        HockeyClient.Current.TrackException(ex);
+                }
+            });
         }
 
         #endregion
